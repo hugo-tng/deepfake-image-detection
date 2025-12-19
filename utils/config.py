@@ -64,7 +64,7 @@ class TrainingConfig:
             'dropout_rate': 0.4,
             'efficientnet_model': 'efficientnet_b1',
             'spatial_dim': 512,
-            'freq_dim': 512,
+            'freq_dim': 256,
             'use_attention_fusion': True,
             'attention_hidden_dim': 256
         }

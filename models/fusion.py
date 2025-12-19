@@ -55,8 +55,8 @@ class AttentionFusion(nn.Module):
         spatial_weight, freq_weight = attn_gate[:, 0:1], attn_gate[:, 1:2]
 
         # Apply attention
-        weighted_spatial = spatial_features * spatial_weight
-        weighted_freq = freq_features * freq_weight
+        weighted_spatial = spatial_norm_feat * spatial_weight
+        weighted_freq = freq_norm_feat * freq_weight
 
         # Concatenate
         fused = torch.cat([

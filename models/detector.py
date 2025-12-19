@@ -44,7 +44,7 @@ class DeepfakeDetector(nn.Module):
 
         # Frequency branch parameters
         if self.mode in ['frequency', 'hybrid']:
-            freq_dim = kwargs.get('freq_dim', 512)
+            freq_dim = kwargs.get('freq_dim', 256)
 
             self.frequency_branch = FrequencyBranch(
                 input_channels=3,

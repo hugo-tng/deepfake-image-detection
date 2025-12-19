@@ -58,8 +58,9 @@ class FrequencyBranch(nn.Module):
     def __init__(
         self,
         input_channels=3,
-        output_dim=512,
-        img_size=240
+        output_dim=256,
+        img_size=240,
+        dropout=0.3
     ):
         super().__init__()
 
@@ -78,17 +79,18 @@ class FrequencyBranch(nn.Module):
             nn.Conv2d(64, 128, 3, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(2, 2),
 
-            # Block 3
-            nn.Conv2d(128, 256, 3, padding=1),
-            nn.BatchNorm2d(256),
-            nn.ReLU(inplace=True),
-
+            # Global statistics
             nn.AdaptiveAvgPool2d((1, 1))
         )
 
-        self.projection = nn.Linear(256, output_dim)
+        self.projection = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(128, output_dim),
+            nn.BatchNorm1d(output_dim),
+            nn.ReLU(inplace=True),
+            nn.Dropout(dropout)
+        )
 
     def forward(self, x):
         """
@@ -98,7 +100,6 @@ class FrequencyBranch(nn.Module):
         freq_features = self.freq_extractor(x)
         features = self.conv_layers(freq_features)  # (B, 256, 1, 1)
 
-        features = features.view(features.size(0), -1)  # (B, 256)
-        features = self.projection(features)
+        features = self.projection(features) # (B, output_dim)
 
         return features
