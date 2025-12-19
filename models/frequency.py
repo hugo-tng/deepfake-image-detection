@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 class FrequencyExtractor(nn.Module):
     """Fast, vectorized frequency-domain feature extractor (FFT)"""
@@ -37,7 +38,11 @@ class FrequencyExtractor(nn.Module):
         w2 = x.size(-1) // 2
         fft_shifted = torch.roll(fft, shifts=(h2, w2), dims=(-2, -1))
 
-        magnitude = torch.log(torch.abs(fft_shifted) + 1e-8)
+        magnitude = torch.log1p(torch.abs(fft_shifted))
+        B, C, H, W = magnitude.shape
+        magnitude = magnitude.view(B, -1)
+        magnitude = (magnitude - magnitude.mean(dim=1, keepdim=True)) / (magnitude.std(dim=1, keepdim=True) + 1e-8)
+        magnitude = magnitude.view(B, C, H, W)
         return magnitude
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -65,6 +70,7 @@ class FrequencyBranch(nn.Module):
         super().__init__()
 
         self.freq_extractor = FrequencyExtractor(
+            high_freq_ratio=0.7,
             img_size=img_size
         )
 
@@ -79,6 +85,14 @@ class FrequencyBranch(nn.Module):
             nn.Conv2d(64, 128, 3, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+
+            # Block 3: 128 -> 256
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout),
+            nn.MaxPool2d(2, 2),
 
             # Global statistics
             nn.AdaptiveAvgPool2d((1, 1))
@@ -86,8 +100,8 @@ class FrequencyBranch(nn.Module):
 
         self.projection = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(128, output_dim),
-            nn.BatchNorm1d(output_dim),
+            nn.Linear(256, output_dim),
+            nn.LayerNorm(output_dim),
             nn.ReLU(inplace=True),
             nn.Dropout(dropout)
         )

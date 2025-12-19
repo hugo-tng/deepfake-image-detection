@@ -46,13 +46,7 @@ def get_transforms(img_size=240):
         'train': transforms.Compose([
             transforms.Resize(int(img_size * 1.15)),
             transforms.RandomCrop(img_size),
-
             transforms.RandomHorizontalFlip(p=0.5),
-
-            # JPEG compression (deepfake-realistic)
-            transforms.RandomApply([
-                JPEGCompression(quality_range=(70, 95))
-            ], p=0.3),
 
             # Color augmentation (spatial robustness)
             transforms.ColorJitter(
@@ -66,6 +60,11 @@ def get_transforms(img_size=240):
             transforms.RandomApply([
                 transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 1.0))
             ], p=0.25),
+
+            # JPEG compression (deepfake-realistic)
+            transforms.RandomApply([
+                JPEGCompression(quality_range=(70, 95))
+            ], p=0.3),
 
             transforms.ToTensor(),
 

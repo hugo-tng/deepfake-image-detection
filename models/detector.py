@@ -49,7 +49,8 @@ class DeepfakeDetector(nn.Module):
             self.frequency_branch = FrequencyBranch(
                 input_channels=3,
                 output_dim=freq_dim,
-                img_size=self.img_size
+                img_size=self.img_size,
+                dropout=dropout_rate
             )
             self._freq_dim = freq_dim
         else:
@@ -65,7 +66,8 @@ class DeepfakeDetector(nn.Module):
                 self.fusion = AttentionFusion(
                     spatial_dim=self._spatial_dim,
                     freq_dim=self._freq_dim,
-                    hidden_dim=self.attn_hidden_dim
+                    hidden_dim=self.attn_hidden_dim,
+                    drop_out=dropout_rate
                 )
             else:
                 self.fusion = None
@@ -75,10 +77,8 @@ class DeepfakeDetector(nn.Module):
         
         # Classification head
         self.classifier = nn.Sequential(
-            nn.Linear(fusion_dim, 512),
-            nn.ReLU(inplace=True),
-            nn.Dropout(dropout_rate),
-            nn.Linear(512, 256),
+            nn.Linear(fusion_dim, 256),
+            nn.LayerNorm(256),
             nn.ReLU(inplace=True),
             nn.Dropout(dropout_rate),
             nn.Linear(256, num_classes)

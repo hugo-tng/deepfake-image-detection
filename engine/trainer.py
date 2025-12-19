@@ -30,7 +30,7 @@ class Trainer:
         # Scheduler
         self.scheduler = self._build_scheduler()
 
-        self.criterion = nn.CrossEntropyLoss(label_smoothing=getattr(self.cfg, 'LABEL_SMOOTHING', 0.0))
+        self.criterion = nn.CrossEntropyLoss(label_smoothing=self.cfg.LABEL_SMOOTHING)
 
         self.scaler = GradScaler('cuda') if self.cfg.USE_AMP else None
         
@@ -44,7 +44,7 @@ class Trainer:
             'learning_rates': []
         }
         
-        self.best_val_acc = 0.0
+        self.best_val_f1 = 0.0
         self.best_val_loss = float('inf')
         self.epochs_without_improvement = 0
         
@@ -104,7 +104,7 @@ class Trainer:
         if sched == "cosine":
             return CosineAnnealingLR(
                 self.optimizer,
-                T_max=getattr(self.cfg, "T_MAX", 50),
+                T_max=self.cfg.T_MAX,
                 eta_min=1e-6
             )
 
@@ -154,7 +154,7 @@ class Trainer:
                 self.scaler.unscale_(self.optimizer)
                 
                 torch.nn.utils.clip_grad_norm_(
-                    [p for p in self.model.parameters() if p.requires_grad], 5.0
+                    [p for p in self.model.parameters() if p.requires_grad], 1.0
                 )
                 self.scaler.step(self.optimizer)
                 self.scaler.update()
@@ -267,21 +267,20 @@ class Trainer:
 
             self._print_epoch_summary(epoch, train_metrics, val_metrics)
             
-            # Best Model Logic
-            is_best = val_metrics['accuracy'] > self.best_val_acc
+            # Early stopping & best model based on F1
+            is_best = val_metrics['f1'] > self.best_val_f1
             if is_best:
-                self.best_val_acc = val_metrics['accuracy']
-                self.best_val_loss = val_metrics['loss']
+                self.best_val_f1 = val_metrics['f1']
                 self.epochs_without_improvement = 0
-                print(f"   New Best Val Acc: {self.best_val_acc:.4f}")
+                print(f"   New Best Val F1: {self.best_val_f1:.4f}")
             else:
                 self.epochs_without_improvement += 1
-                print(f"   Epochs no improve: {self.epochs_without_improvement}/{self.cfg.EARLY_STOPPING_PATIENCE}")
-            
+                print(f"   Epochs without F1 improvement: {self.epochs_without_improvement}/{self.cfg.EARLY_STOPPING_PATIENCE}")
+
             self.save_checkpoint(epoch, val_metrics, is_best=is_best)
-            
+
             if self.epochs_without_improvement >= self.cfg.EARLY_STOPPING_PATIENCE:
-                print(f"\n [INFO] Early stopping triggered.")
+                print(f"\n [INFO] Early stopping triggered based on F1-score.")
                 break
 
         # Save training history
@@ -291,5 +290,5 @@ class Trainer:
         with open(history_path, 'w') as f:
             json.dump(self.history, f, indent=4)
         
-        print(f"\nTraining Completed. Best Acc: {self.best_val_acc:.4f}")
+        print(f"\nTraining Completed. Best F1: {self.best_val_f1:.4f}")
         print(f"History saved to: {history_path}")

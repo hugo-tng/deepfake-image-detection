@@ -24,6 +24,7 @@ class AttentionFusion(nn.Module):
         # Attention weights
         self.attention_context = nn.Sequential(
             nn.Linear(spatial_dim + freq_dim, hidden_dim),
+            nn.LayerNorm(hidden_dim),
             nn.ReLU(inplace=True),
             nn.Dropout(drop_out),
             nn.Linear(hidden_dim, 2),
