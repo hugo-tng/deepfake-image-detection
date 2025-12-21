@@ -46,7 +46,7 @@ class TrainingConfig:
         self.LABEL_SMOOTHING = 0.05
 
         # Early stopping
-        self.EARLY_STOPPING_PATIENCE = 6
+        self.EARLY_STOPPING_PATIENCE = 7
 
         # Mixed precision training
         self.USE_AMP = True  

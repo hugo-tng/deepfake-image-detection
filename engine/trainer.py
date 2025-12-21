@@ -132,6 +132,9 @@ class Trainer:
                 print(f"[INFO] Unfreezing backbone at epoch {epoch}")
                 self.model.freeze_spatial_backbone(False)
 
+                if isinstance(self.scheduler, CosineAnnealingLR):
+                    self.scheduler.last_epoch = -1
+
 
     def train_epoch(self, epoch: int):
         self._handle_freeze_unfreeze(epoch)
@@ -171,7 +174,7 @@ class Trainer:
             if batch_idx % 10 == 0:
                 pbar.set_postfix({
                     'loss': f'{loss.item():.4f}',
-                    'lr': f'{self.optimizer.param_groups[0]["lr"]:.6f}'
+                    'lr': f'{self.optimizer.param_groups[-1]["lr"]:.6f}'
                 })
 
         return self.train_metrics.compute_metrics()

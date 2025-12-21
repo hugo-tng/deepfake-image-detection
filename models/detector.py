@@ -59,6 +59,7 @@ class DeepfakeDetector(nn.Module):
 
         # Fusion module
         fusion_dim = self._spatial_dim + self._freq_dim
+        self.fusion = None
 
         if self.mode == 'hybrid':
             use_attention_fusion = kwargs.get('use_attention_fusion', True)
@@ -67,19 +68,14 @@ class DeepfakeDetector(nn.Module):
                     spatial_dim=self._spatial_dim,
                     freq_dim=self._freq_dim,
                     hidden_dim=self.attn_hidden_dim,
-                    drop_out=dropout_rate
+                    drop_out=dropout_rate,
                 )
-            else:
-                self.fusion = None
-        else:
-            self.fusion = None            
-
         
         # Classification head
         self.classifier = nn.Sequential(
             nn.Linear(fusion_dim, 256),
             nn.LayerNorm(256),
-            nn.ReLU(inplace=True),
+            nn.GELU(),
             nn.Dropout(dropout_rate),
             nn.Linear(256, num_classes)
         )
