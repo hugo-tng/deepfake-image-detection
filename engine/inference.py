@@ -4,6 +4,7 @@ import torch
 
 from utils.config import TrainingConfig
 from data.datasets import get_transforms
+from data.facecrop import FaceCropper
 import matplotlib.pyplot as plt
 
 CLASS_NAMES = {
@@ -11,28 +12,34 @@ CLASS_NAMES = {
     1: 'AI'
 }
 
-def preprocess_image(image_path, img_size: 224, device):
+def preprocess_image(image_path, img_size: 224, device, cropper: FaceCropper = None):
     """
     Đọc và tiền xử lý ảnh giống hệt như lúc training (Resize -> Normalize).
     """
+    if cropper is not None:
+        # Cropper tự handle việc đọc file và trả về PIL Image
+        pil_image = cropper(image_path)
+        status_msg = "Processed Input (Face Crop)"
+    else:
+        # Fallback nếu không dùng crop
+        pil_image = Image.open(image_path).convert('RGB')
+        status_msg = "Original Input (No Crop)"
+
+    plt.figure(figsize=(4, 4))
+    plt.imshow(pil_image)
+    plt.axis('off')
+    plt.title(status_msg, fontsize=10)
+    plt.show()
+
     if not os.path.exists(image_path):
         raise FileNotFoundError(f" Không tìm thấy ảnh tại: {image_path}")
-
-    # 1. Mở ảnh
-    image = Image.open(image_path).convert('RGB')
-
-    plt.figure(figsize=(6, 6))
-    plt.imshow(image)
-    plt.axis('off')
-    plt.title("Predict Image", fontsize=14, fontweight='bold')
-    plt.show()
 
     # 2. Lấy bộ transform - test
     transforms_dict = get_transforms(img_size)
     transform = transforms_dict['test']
 
     # 3. Biến đổi ảnh thành tensor
-    img_tensor = transform(image)
+    img_tensor = transform(pil_image)
 
     # 4. Thêm chiều batch (C, H, W) -> (1, C, H, W)
     img_tensor = img_tensor.unsqueeze(0)
@@ -48,8 +55,14 @@ def predict_image(models_list, image_path):
         image_path: Đường dẫn ảnh
     """
     global_config = models_list[0]['config']    
+    face_cropper = FaceCropper(
+        out_size=256,         # Crop ra ảnh 256x256 cho nét
+        target_face_ratio=1.2 # Zoom cận mặt (logic cũ)
+    )
+
     # 1. Tiền xử lý
-    img_tensor = preprocess_image(image_path, global_config.IMG_SIZE, global_config.DEVICE)
+    print(f"\n--- Processing: {os.path.basename(image_path)} ---")
+    img_tensor = preprocess_image(image_path, global_config.IMG_SIZE, global_config.DEVICE, cropper=face_cropper)
 
     results_data = []
 
@@ -80,11 +93,10 @@ def model_predict(model, image_tensor, model_name):
         
         # Tính xác suất (Softmax)
         probs = torch.softmax(outputs, dim=1)
-        
+
         # Lấy class có xác suất cao nhất
         confidence, pred_class_idx = torch.max(probs, 1)
 
-        fake_prob = probs[0][1].item()
         conf_score = confidence.item()
         label = CLASS_NAMES.get(pred_class_idx.item(), "Unknown")
     

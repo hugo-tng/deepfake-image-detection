@@ -3,11 +3,12 @@ import torch
 
 class PathConfig:
     BASE_DIR = os.path.join(os.pardir, os.pardir)
-    DATASETS = os.path.join(BASE_DIR, 'Datasets')
+    # DATASETS = os.path.join(BASE_DIR, 'Datasets')
+    DATASETS = os.path.join(BASE_DIR, 'Datasets', "KaggleDS")
     RAW_AI_GEN_IMGS = os.path.join(DATASETS, 'AI_Generated')
     RAW_REAL_IMGS = os.path.join(DATASETS, 'Real')
 
-    PROCESSED_DATA = os.path.join(DATASETS, "processed")
+    PROCESSED_DATA = os.path.join(DATASETS)
     REAL_IMGS = os.path.join(PROCESSED_DATA, 'Real')
     AI_GEN_IMGS = os.path.join(PROCESSED_DATA, "Fake")
     
@@ -36,13 +37,13 @@ class TrainingConfig:
         self.LOG_DIR = os.path.join(self.OUTPUT_DIR, "logs")
 
         # --- Hyperparameters ---
-        self.NUM_EPOCHS = 15
+        self.NUM_EPOCHS = 10
         self.BATCH_SIZE = 16
         self.LEARNING_RATE = 1e-4
         self.WEIGHT_DECAY = 3e-5
         self.IMG_SIZE = 240
         self.NUM_WORKERS = 0
-        self.FREEZE_EPOCHS = 5
+        self.FREEZE_EPOCHS = 3
         self.LABEL_SMOOTHING = 0.05
 
         # Early stopping
@@ -53,7 +54,7 @@ class TrainingConfig:
 
         # Scheduler
         self.SCHEDULER_TYPE = 'cosine'
-        self.T_MAX = 15
+        self.T_MAX = 10
 
         # Logging
         self.LOG_INTERVAL = 10
