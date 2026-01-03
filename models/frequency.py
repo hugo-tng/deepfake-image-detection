@@ -135,23 +135,20 @@ class FrequencyBranch(nn.Module):
         self.global_pool = nn.AdaptiveAvgPool2d((1, 1))
 
         self.projection = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(256, 512),
-            nn.LayerNorm(512),
+            nn.Linear(256, output_dim),
+            nn.LayerNorm(output_dim),
             nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(512, output_dim),
-            nn.LayerNorm(output_dim)
+            nn.Dropout(dropout * 0.5)
         )
 
     def _make_block(self, in_channels, out_channels, dropout):
         """Create a convolutional block"""
         return nn.Sequential(
             nn.Conv2d(in_channels, out_channels, 3, padding=1),
-            nn.BatchNorm2d(out_channels),
+            nn.GroupNorm(num_groups=min(32, out_channels), num_channels=out_channels),
             nn.GELU(),
             nn.Conv2d(out_channels, out_channels, 3, padding=1),
-            nn.BatchNorm2d(out_channels),
+            nn.GroupNorm(num_groups=min(32, out_channels), num_channels=out_channels),
             nn.GELU(),
             nn.Dropout2d(dropout * 0.5),
             nn.MaxPool2d(2, 2)
@@ -171,6 +168,8 @@ class FrequencyBranch(nn.Module):
 
         # Global pooling
         features = self.global_pool(x3)  # (B, 256, 1, 1)
+
+        features = features.flatten(1)   # (B, 256)
 
         features = self.projection(features) # (B, output_dim)
 

@@ -9,7 +9,7 @@ from tqdm import tqdm
 import json
 
 from utils.metrics import MetricsTracker
-from utils.config import TrainingConfig
+from utils.config import TrainingConfig, GlobalConfig
 
 class Trainer:
     """Main training class"""
@@ -20,7 +20,7 @@ class Trainer:
         self.val_loader = val_loader
         self.cfg = training_config
 
-        self.device = self.cfg.DEVICE
+        self.device = GlobalConfig.DEVICE
         self.model.to(self.device)
 
         self.freeze_epochs = getattr(self.cfg, "FREEZE_EPOCHS", 0)
@@ -53,7 +53,7 @@ class Trainer:
     def _build_optimizer(self):
         param_groups = []
 
-        # 1Backbone (EfficientNet)
+        # Backbone (EfficientNet)
         if self.model.spatial_branch is not None:
             backbone_params = [
                 p for p in self.model.spatial_branch.backbone.parameters()

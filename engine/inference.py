@@ -2,15 +2,11 @@ import os
 from PIL import Image
 import torch
 
-from utils.config import TrainingConfig
+from utils.config import GlobalConfig, LabelConfig
 from data.datasets import get_transforms
 from data.facecrop import FaceCropper
 import matplotlib.pyplot as plt
 
-CLASS_NAMES = {
-    0: 'Real',
-    1: 'AI'
-}
 
 def preprocess_image(image_path, img_size: 224, device, cropper: FaceCropper = None):
     """
@@ -53,16 +49,15 @@ def predict_image(models_list, image_path):
     Args:
         models: Danh sách mô hình 
         image_path: Đường dẫn ảnh
-    """
-    global_config = models_list[0]['config']    
+    """  
     face_cropper = FaceCropper(
-        out_size=256,         # Crop ra ảnh 256x256 cho nét
-        target_face_ratio=1.2 # Zoom cận mặt (logic cũ)
+        out_size=GlobalConfig.CROP_SIZE,         
+        target_face_ratio=1.2 
     )
 
     # 1. Tiền xử lý
     print(f"\n--- Processing: {os.path.basename(image_path)} ---")
-    img_tensor = preprocess_image(image_path, global_config.IMG_SIZE, global_config.DEVICE, cropper=face_cropper)
+    img_tensor = preprocess_image(image_path, GlobalConfig.IMG_SIZE, GlobalConfig.DEVICE, cropper=face_cropper)
 
     results_data = []
 
@@ -73,13 +68,15 @@ def predict_image(models_list, image_path):
         results_data.append(result)
 
     # 3. In kết quả
-    print(f"{'MODEL NAME':<25} | {'PREDICTION':<12} | {'CONFIDENCE':<12} | {'FAKE PROB':<12}")
-    print("-" * 75)
+    print(f"{'MODEL NAME':<25} | {'PREDICTION':<12} | {'CONFIDENCE':<12} | {'FAKE PROB':<12}" + 
+          f" | {'SPATIAL W':<12} | {'FREQ W':<12}")
+    print("-" * 100)
 
     for row in results_data:
-        print(f"{row['Model Name']:<25} | {row['Prediction']:<12} | {row['Confidence']:<12} | {row['Fake Prob']:<12}")
+        print(f"{row['Model Name']:<25} | {row['Prediction']:<12} | {row['Confidence']:<12} | {row['Fake Prob']:<12}" +
+              f" | {row['Spatial Weight']:<12} | {row['Frequency Weight']:<12}")
     
-    print("-" * 75)
+    print("-" * 100)
 
     return results_data
 
@@ -98,16 +95,21 @@ def model_predict(model, image_tensor, model_name):
         confidence, pred_class_idx = torch.max(probs, 1)
 
         conf_score = confidence.item()
-        label = CLASS_NAMES.get(pred_class_idx.item(), "Unknown")
+        label = LabelConfig.ID2LABELS.get(pred_class_idx.item(), "Unknown")
     
-        # Lấy xác suất cụ thể của lớp AI (index 1)
-        fake_prob = probs[0][1].item()
+        # Lấy xác suất cụ thể của lớp AI-Generated (Fake)
+        fake_prob = probs[0][LabelConfig.FAKE_IDX].item()
+
+        # Lấy trọng số kết quả
+        spatial_w, freq_w = model.get_feature_importance(image_tensor)
 
         result = {
             "Model Name": model_name,
             "Prediction": label.upper(),
             "Confidence": f"{conf_score*100:.2f}%",
-            "Fake Prob": f"{fake_prob*100:.2f}%"
+            "Fake Prob": f"{fake_prob*100:.2f}%",
+            "Spatial Weight": f"{spatial_w.mean().item():.4f}%",
+            "Frequency Weight": f"{freq_w.mean().item():.4f}%"
         }
 
     return result

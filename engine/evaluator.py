@@ -17,7 +17,7 @@ def evaluate_test_set(model, test_loader, device, output_dir):
     
     all_preds = []
     all_labels = []
-    all_probs = [] # Lưu xác suất lớp 1 (Fake) để vẽ ROC
+    all_probs = [] # Lưu xác suất lớp Fake để vẽ ROC
     
     # 1. Vòng lặp dự đoán
     for images, labels in tqdm(test_loader, desc="Testing"):

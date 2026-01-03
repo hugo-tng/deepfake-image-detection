@@ -13,7 +13,7 @@ class FaceCropper:
     def __init__(
         self,
         out_size: int = 256,
-        target_face_ratio: float = 1.20,
+        target_face_ratio: float = 1.0,
         scale_factor: float = 1.1,
         min_neighbors: int = 4
     ):
@@ -86,17 +86,31 @@ class FaceCropper:
             center_y = int((y + h//2) * zoom_factor)
             
             half = self.out_size // 2
-            x1 = center_x - half
-            y1 = center_y - half
-            x2 = x1 + self.out_size
-            y2 = y1 + self.out_size
+            crop_x1 = center_x - half
+            crop_y1 = center_y - half
+            crop_x2 = crop_x1 + self.out_size
+            crop_y2 = crop_y1 + self.out_size
 
-            # Padding/Clamping đơn giản (Cắt trong vùng ảnh)
-            h_z, w_z = zoomed_image.shape[:2]
-            x1 = max(0, x1); y1 = max(0, y1)
-            x2 = min(w_z, x2); y2 = min(h_z, y2)
+            h_img, w_img = zoomed_image.shape[:2]
 
-            cropped = zoomed_image[y1:y2, x1:x2]
+            if crop_x1 < 0:
+                crop_x1 = 0
+                crop_x2 = self.out_size
+            # Nếu lòi phải -> dời sang trái
+            elif crop_x2 > w_img:
+                crop_x2 = w_img
+                crop_x1 = max(0, w_img - self.out_size)
+
+            # Nếu lòi trên -> dời xuống dưới
+            if crop_y1 < 0:
+                crop_y1 = 0
+                crop_y2 = self.out_size
+            # Nếu lòi dưới -> dời lên trên
+            elif crop_y2 > h_img:
+                crop_y2 = h_img
+                crop_y1 = max(0, h_img - self.out_size)
+
+            cropped = zoomed_image[crop_y1:crop_y2, crop_x1:crop_x2]
             
             # Resize về đúng chuẩn nếu bị lệch do biên
             if cropped.shape[0] != self.out_size or cropped.shape[1] != self.out_size:

@@ -1,32 +1,57 @@
 import os
 import torch
 
+class LabelConfig:
+    # Class labels indices
+    REAL_IDX = 0
+    FAKE_IDX = 1
+
+    # Class labels names
+    REAL_NAME = 'Real'
+    FAKE_NAME = 'Fake'
+
+    # Label mappings
+    ID2LABELS = {
+        REAL_IDX: REAL_NAME,
+        FAKE_IDX: FAKE_NAME
+    }
+
+    LABELS2ID = {
+        REAL_NAME: REAL_IDX,
+        FAKE_NAME: FAKE_IDX
+    }
+
+
+class GlobalConfig:
+    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    IMG_SIZE = 240
+    CROP_SIZE = 256
+    RANDOM_SEED = 42
+    NUM_WORKERS = 0
+
+
+
 class PathConfig:
     BASE_DIR = os.path.join(os.pardir, os.pardir)
-    DATASETS = os.path.join(BASE_DIR, 'Datasets')
     DATASETS = os.path.join(BASE_DIR, 'Datasets')
     RAW_AI_GEN_IMGS = os.path.join(DATASETS, 'AI_Generated')
     RAW_REAL_IMGS = os.path.join(DATASETS, 'Real')
 
-    PROCESSED_DATA = os.path.join(DATASETS, 'CroppedFaces')
+    PROCESSED_DATA = os.path.join(DATASETS, 'Face_Cropped')
     REAL_IMGS = os.path.join(PROCESSED_DATA, 'Real')
     AI_GEN_IMGS = os.path.join(PROCESSED_DATA, "Fake")
     
-    SPILTTED_DATASETS = os.path.join(DATASETS, 'Split_Data')
+    SPLITTED_DATASETS = os.path.join(DATASETS, 'Split_Data')
     OUTPUTS = os.path.join(BASE_DIR, 'Outputs')
 
     # file paths
-    train_csv = os.path.join(SPILTTED_DATASETS, 'train.csv')
-    val_csv = os.path.join(SPILTTED_DATASETS, 'val.csv')
-    test_csv = os.path.join(SPILTTED_DATASETS, 'test.csv')
+    train_csv = os.path.join(SPLITTED_DATASETS, 'train.csv')
+    val_csv = os.path.join(SPLITTED_DATASETS, 'val.csv')
+    test_csv = os.path.join(SPLITTED_DATASETS, 'test.csv')
 
 
 class TrainingConfig:
     def __init__(self, mode: str, model_name: str):
-        # --- General settings ---
-        self.DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.RANDOM_SEED = 42
-
         # --- class parameters ---
         self.MODE = mode
         self.MODEL_NAME = model_name
@@ -41,8 +66,6 @@ class TrainingConfig:
         self.BATCH_SIZE = 16
         self.LEARNING_RATE = 1e-4
         self.WEIGHT_DECAY = 3e-4
-        self.IMG_SIZE = 240
-        self.NUM_WORKERS = 2
         self.FREEZE_EPOCHS = 3
         self.LABEL_SMOOTHING = 0.05
 
