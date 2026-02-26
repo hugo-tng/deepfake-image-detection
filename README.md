@@ -2,7 +2,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-1.13%2B-red)
-![License](https://img.shields.io/badge/License-MIT-green)
+![License](https://img.shields.io/badge/License-Educational-blue)
 ![Status](https://img.shields.io/badge/Status-In%20Progress-blue)
 
 ## Giới thiệu (Introduction)
@@ -22,73 +22,133 @@ Hai luồng thông tin được hợp nhất thông qua cơ chế **Residual Att
 - **Asymmetric Design:** Thiết kế bất đối xứng (Spatial 512-dim, Frequency 256-dim) giúp tối ưu hóa tài nguyên tính toán và giảm nhiễu.
 - **Robust Preprocessing:** Tích hợp mô phỏng nén ảnh (JPEG Compression) và nhiễu (Gaussian Noise) để tăng độ bền vững.
 - **Two-stage Training:** Chiến lược huấn luyện 2 giai đoạn (Frozen & Fine-tuning) giúp hội tụ ổn định.
-- **High Performance:** Đạt độ chính xác >99% trên tập dữ liệu kiểm thử hỗn hợp.
+- **High Performance:** Đạt độ chính xác >99% trên tập dữ liệu kiểm thử hỗn hợp (Accuracy 98.15%, Recall 99.55%, F1-Score 98.18%, AUC-ROC 0.998 trên tập test 4000 ảnh).
 
-## Kiến trúc hệ thống (System Architecture)
+## Dữ liệu (Dataset)
 
-```mermaid
----
-config:
-  layout: dagre
-  theme: base
-  themeVariables:
-    background: "#ffffff"
-    primaryColor: "#ffffff"
-    primaryBorderColor: "#000000"
-    primaryTextColor: "#000000"
-    lineColor: "#000000"
----
-flowchart LR
+**Kích thước dữ liệu:** 20.000 ảnh cân bằng (50% real từ CelebAMask-HQ, 50% fake từ StyleGAN/Stable Diffusion/RealVisXL/Gemini)
 
-%% ===== INPUT (CENTERED) =====
-subgraph InputStage[" "]
-    direction TB
-    Input(["<b>Aligned & Cropped Face</b><br/><i>(RGB, 240×240)</i>"])
-end
+### Bộ dữ liệu sử dụng:
 
-%% ===== FEATURE EXTRACTION =====
-subgraph FeatureExtraction["<b>FEATURE EXTRACTION</b>"]
-    direction TB
-    Spatial["<b>Spatial Branch</b><br/><i>(EfficientNet Backbone)</i>"]
-    Frequency["<b>Frequency Branch</b><br/><i>(FFT + CNN)</i>"]
-end
+**1. Tập dữ liệu ảnh giả:**
 
-%% ===== FEATURE FUSION =====
-subgraph FeatureFusion["<b>FEATURE FUSION</b>"]
-    direction LR
-    Fusion["<b>Attention Fusion</b><br/><i>(Learnable Gating)</i>"]
-end
+- **Nơi lưu trữ:** Hugging Face
+- **Liên kết:** https://huggingface.co/datasets/fcsn37/AI-image-detection-FAKE
+- **Mô tả:** Bao gồm các ảnh khuôn mặt được tạo sinh bởi nhiều mô hình AI khác nhau, phản ánh đa dạng phong cách và đặc trưng tạo sinh
 
-%% ===== CLASSIFICATION =====
-subgraph Classification["<b>CLASSIFICATION</b>"]
-    direction LR
-    Classifier["<b>Classifier Head</b><br/><i>(Prediction Layer)</i>"]
-    Output(["<b>Final Prediction</b><br/><i>(Real vs. Fake)</i>"])
-end
+**2. Tập dữ liệu ảnh thật:**
 
-%% ===== CONNECTIONS =====
-Input -- Raw Pixels --> Spatial
-Input -- Raw Pixels --> Frequency
-Spatial -- Spatial Features --> Fusion
-Frequency -- Frequency Features --> Fusion
-Fusion -- Fused Features --> Classifier
-Classifier -- Probabilities --> Output
+- **Nguồn:** Hugging Face
+- **Liên kết:** https://huggingface.co/datasets/fcsn37/AI-image-detection-REAL
+- **Mô tả:** Gồm các ảnh khuôn mặt tự nhiên, chất lượng cao, được chọn lọc và tiền xử lý nhằm đảm bảo tính nhất quán và độ tin cậy
 
-%% ===== STYLING (BLACK & WHITE) =====
-style Input fill:#ffffff,stroke:#000000,stroke-width:2.5px
+### Mục đích sử dụng:
 
-style Spatial fill:#ffffff,stroke:#000000,stroke-width:2px
-style Frequency fill:#ffffff,stroke:#000000,stroke-width:2px
+Các tập dữ liệu được sử dụng phục vụ **nghiên cứu học thuật**, **huấn luyện và đánh giá mô hình** phân loại ảnh thật – giả. Không sử dụng cho mục đích thương mại hay vi phạm đạo đức dữ liệu.
 
-style Fusion fill:#ffffff,stroke:#000000,stroke-width:3px
+## Kiến trúc mô hình (Model Architecture)
 
-style Classifier fill:#ffffff,stroke:#000000,stroke-width:2px
-style Output fill:#ffffff,stroke:#000000,stroke-width:2px
+![Model Architecture](assets/model_architecture.svg)
 
-style FeatureExtraction fill:#ffffff,stroke:#000000,stroke-width:1.5px,stroke-dasharray:6 4
-style FeatureFusion fill:#ffffff,stroke:#000000,stroke-width:1.5px,stroke-dasharray:6 4
-style Classification fill:#ffffff,stroke:#000000,stroke-width:1.5px,stroke-dasharray:6 4
+Kiến trúc gồm ba giai đoạn chính:
 
-style InputStage fill:none,stroke:none
+### 1. Feature Extraction (Trích xuất đặc trưng)
+
+- **Spatial Branch:** EfficientNet-B1 xử lý ảnh RGB gốc để nắm bắt đặc trưng không gian
+- **Frequency Branch:** FFT + CNN xử lý phổ tần số để phát hiện anomalies
+
+### 2. Feature Fusion (Hợp nhất đặc trưng)
+
+- **Attention Fusion:** Cơ chế gating học được để tối ưu trọng số từng nhánh
+
+### 3. Classification (Phân loại)
+
+- **Classifier Head:** Lớp phân loại cuối cùng dự đoán Real vs. Fake
+
+## Cấu trúc dự án (Project Structure)
 
 ```
+Source/
+├── models/                  # Các mô hình neural network
+│   ├── spatial.py          # Spatial branch (EfficientNet)
+│   ├── frequency.py        # Frequency branch (FFT + CNN)
+│   ├── fusion.py           # Attention fusion mechanism
+│   └── detector.py         # Model detector & utilities
+│
+├── engine/                  # Các module huấn luyện và đánh giá
+│   ├── trainer.py          # Training loop
+│   ├── evaluator.py        # Evaluation metrics & validation
+│   └── inference.py        # Inference utilities
+│
+├── data/                    # Xử lý dữ liệu
+│   ├── datasets.py         # Dataset loaders
+│   ├── loader.py           # Data loading utilities
+│   └── facecrop.py         # Face cropping preprocessing
+│
+├── utils/                   # Các hàm tiện ích
+│   ├── config.py           # Configuration management
+│   ├── metrics.py          # Custom metrics
+│   ├── supporter.py        # Helper functions
+│   └── visualization.py    # Visualization utilities
+│
+├── notebooks/              # Jupyter notebooks
+│   ├── 01_DataPrepare.ipynb         # Data preparation
+│   ├── 02_TrainingModel.ipynb       # Model training
+│   ├── 03_ModelTesting.ipynb        # Model evaluation
+│   ├── 04_VisualizeExample.ipynb    # Results visualization
+│   └── FaceCrop.ipynb              # Face cropping examples
+│
+├── assets/                 # Ảnh và tài nguyên đồ họa
+├── requirements.txt        # Dependencies
+├── README.md              # Documentation
+└── diagram_code.md        # Architecture diagrams
+```
+
+## Cài đặt (Installation)
+
+### Yêu cầu hệ thống
+
+- Python 3.8+
+- PyTorch 1.13+
+- OpenCV 4.10+
+- NumPy, Pandas, Scikit-learn
+- Matplotlib, Pillow
+
+### Cài đặt dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+## Hướng dẫn sử dụng (Usage)
+
+### 1. Chuẩn bị dữ liệu
+
+Xem [01_DataPrepare.ipynb](notebooks/01_DataPrepare.ipynb) để chuẩn bị và xử lý dữ liệu.
+
+Sau khi chạy sẽ tạo thư mục `Split_Data`, chứa các file `train.csv`, `val.csv`, `test.csv` dùng cho huấn luyện và đánh giá.
+
+### 2. Huấn luyện mô hình
+
+Xem [02_TrainingModel.ipynb](notebooks/02_TrainingModel.ipynb) để huấn luyện mô hình.
+
+Huấn luyện mô hình với chiến lược 2 giai đoạn:
+
+- Giai đoạn 1: Freeze backbone (3 epoch đầu)
+- Giai đoạn 2: Fine-tuning toàn bộ mô hình
+
+Checkpoint tốt nhất được lưu tự động.
+
+### 3. Đánh giá mô hình
+
+Xem [03_ModelTesting.ipynb](notebooks/03_ModelTesting.ipynb) để kiểm tra hiệu suất mô hình.
+
+Tính năng:
+
+- Dự đoán ảnh đơn lẻ
+- Trả về nhãn (REAL/FAKE) và confidence score
+- Truyền đường dẫn ảnh vào biến `test_image_path`
+
+### 4. Trực quan hóa kết quả
+
+Xem [04_VisualizeExample.ipynb](notebooks/04_VisualizeExample.ipynb) để xem các ví dụ chi tiết và trực quan hóa kết quả.

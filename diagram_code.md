@@ -1,5 +1,18 @@
 # CÁC SƠ ĐỒ KIẾN TRÚC MÔ HÌNH ĐƯỢC SỬ DỤNG
 
+## Giới thiệu (Overview)
+
+File này chứa toàn bộ các sơ đồ mermaid mô tả kiến trúc của mô hình **Hybrid Asymmetric Architecture** dùng để phát hiện ảnh Deepfake.
+
+Kiến trúc gồm các thành phần chính:
+
+1. **Spatial Branch:** Trích xuất đặc trưng không gian từ ảnh RGB sử dụng EfficientNet-B1
+2. **Frequency Branch:** Phân tích phổ tần số (FFT) để phát hiện dấu vết nhân tạo
+3. **Attention Fusion:** Hợp nhất hai nhánh bằng cơ chế gating tối ưu
+4. **Classification Head:** Phân loại cuối cùng để dự đoán Real vs. Fake
+
+---
+
 # Ý tưởng tổng quát
 
 ```mermaid
@@ -46,6 +59,8 @@ flowchart TB
 ```
 
 # Kiến trúc tổng quan
+
+**Mô tả:** Sơ đồ này thể hiện toàn bộ luồng dữ liệu từ input ảnh đến output dự đoán, bao gồm cả ba giai đoạn: Feature Extraction, Feature Fusion, và Classification.
 
 ```mermaid
 ---
@@ -102,7 +117,9 @@ style Classification fill:#fcfcfc,stroke:#999,stroke-width:1.5px,stroke-dasharra
 style InputStage fill:none,stroke:none
 ```
 
-# Nhánh đặc trưng không gian (spatial)
+# Nhánh đặc trưng không gian (Spatial Branch)
+
+**Mô tả:** Nhánh Spatial sử dụng backbone EfficientNet-B1 (pre-trained) để trích xuất đặc trưng từ ảnh RGB gốc. Sau đó dùng Projection Layer để chuyển đổi vector đặc trưng thành 512 chiều phục vụ cho quá trình hợp nhất.
 
 ```mermaid
 flowchart TD
@@ -127,7 +144,9 @@ flowchart TD
     classDef container fill:#fff,stroke:#333,stroke-dasharray: 5 5
 ```
 
-# Nhánh đặc trưng tần số
+# Nhánh đặc trưng tần số (Frequency Branch)
+
+**Mô tả:** Nhánh Frequency xử lý phổ tần số (FFT) của ảnh để phát hiện các anomalies. Sử dụng Frequency Extractor Module (FFT + High-pass Masking) kết hợp với Multi-stage CNN để trích xuất 256 chiều đặc trưng tần số.
 
 ```mermaid
 graph TD
@@ -153,7 +172,9 @@ graph TD
     Proj --> Output
 ```
 
-# Attention
+# Attention Fusion Mechanism
+
+**Mô tả:** Cơ chế fusion này hợp nhất hai nhánh spatial và frequency bằng một Gating Network học được. Gating Network tính trọng số attention để điều chỉnh mức độ đóng góp của từng nhánh, sau đó sử dụng Residual Attention để kết hợp các đặc trưng.
 
 ## Tổng quan
 
@@ -197,6 +218,8 @@ flowchart TB
 
 ## Gating Network
 
+**Mô tả:** Gating Network nhận input là sự kết hợp của đặc trưng từ hai nhánh (768 chiều), sau đó tính toán trọng số attention cho mỗi nhánh qua các Linear layers, Non-linearity, và Sigmoid activation. Kết quả là hai giá trị trọng số: gs cho Spatial (512) và gf cho Frequency (256).
+
 ```mermaid
 flowchart LR
     Input(["<b>Joint Context</b><br><i>(Batch, 768)</i>"]) --> L1["<b>Linear 1</b><br><i>(768 → 256)</i>"]
@@ -222,6 +245,8 @@ flowchart LR
 ```
 
 ## Attention Fusion
+
+**Mô tả:** Phần này hợp nhất các đặc trưng từ hai nhánh sử dụng cơ chế Residual Attention. Mỗi đặc trưng được nhân với (1 + trọng số) để tạo ra một điều chỉnh động dựa trên mức độ quan trọng của từng nhánh. Sau đó hai vector được ghép lại thành một vector đặc trưng cuối cùng 768 chiều.
 
 ```mermaid
 flowchart LR
@@ -282,6 +307,8 @@ flowchart LR
 ```
 
 # Classification Head
+
+**Mô tả:** Phần cuối cùng của mô hình là Classification Head. Nó nhận vector đặc trưng 768 chiều từ Fusion Layer, qua một loạt Linear layers kết hợp với Non-linearity (LayerNorm, GELU) và Dropout để tạo ra logits cuối cùng (2 chiều: Real vs. Fake).
 
 ```mermaid
 ---
