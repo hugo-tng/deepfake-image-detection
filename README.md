@@ -65,6 +65,8 @@ Kiến trúc gồm ba giai đoạn chính:
 
 - **Classifier Head:** Lớp phân loại cuối cùng dự đoán Real vs. Fake
 
+> **Xem chi tiết kiến trúc:** Tham khảo file [diagram_code.md](diagram_code.md) để xem các sơ đồ Mermaid mô tả chi tiết từng thành phần của mô hình
+
 ## Cấu trúc dự án (Project Structure)
 
 ```
